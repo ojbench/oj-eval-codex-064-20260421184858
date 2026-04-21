@@ -91,7 +91,7 @@ struct formatter<StrLike> {
         return fmt.starts_with("s") ? 1u : 0u;
     }
     static auto format_to(std::ostream &os, const StrLike &val, sv_t fmt = "s") -> void {
-        if (fmt.starts_with("s")) {
+        if (fmt.starts_with("s") || fmt.starts_with("_")) {
             os << static_cast<sv_t>(val);
         } else {
             throw format_error{};
