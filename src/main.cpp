@@ -49,34 +49,28 @@ consteval auto find_specifier(sv_t &fmt) -> bool {
 };
 
 template <typename... Args>
+template <typename Parser>
+consteval void parse_one(sv_t &fmt, std::span<format_info> idx, std::size_t &n) {
+    const auto last_pos = fmt.begin();
+    if (!find_specifier(fmt)) {
+        idx[n++] = { .position = format_info::npos, .consumed = 0 };
+        return;
+    }
+    const auto position = static_cast<std::size_t>(fmt.begin() - last_pos - 1);
+    const auto consumed = Parser::parse(fmt);
+    idx[n++] = { .position = position, .consumed = consumed };
+    if (consumed > 0) {
+        fmt.remove_prefix(consumed);
+    } else if (fmt.starts_with("_")) {
+        fmt.remove_prefix(1);
+    } else {
+        throw format_error{"invalid specifier"};
+    }
+}
+
 consteval auto compile_time_format_check(sv_t fmt, std::span<format_info> idx) -> void {
     std::size_t n = 0;
-    struct ApplyOne {
-        sv_t &fmt;
-        std::size_t &n;
-        std::span<format_info> idx;
-        consteval ApplyOne(sv_t &f, std::size_t &nn, std::span<format_info> i) : fmt(f), n(nn), idx(i) {}
-        template <typename Parser>
-        consteval void operator()() const {
-            const auto last_pos = fmt.begin();
-            if (!find_specifier(fmt)) {
-                idx[n++] = { .position = format_info::npos, .consumed = 0 };
-                return;
-            }
-            const auto position = static_cast<std::size_t>(fmt.begin() - last_pos - 1);
-            const auto consumed = Parser::parse(fmt);
-            idx[n++] = { .position = position, .consumed = consumed };
-            if (consumed > 0) {
-                fmt.remove_prefix(consumed);
-            } else if (fmt.starts_with("_")) {
-                fmt.remove_prefix(1);
-            } else {
-                throw format_error{"invalid specifier"};
-            }
-        }
-    };
-    ApplyOne ap{fmt, n, idx};
-    (ap.template operator()<formatter<Args>>(), ...);
+    (parse_one<formatter<Args>>(fmt, idx, n), ...);
     if (find_specifier(fmt)) throw format_error{"too many specifiers"};
 }
 
