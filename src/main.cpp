@@ -48,7 +48,6 @@ consteval auto find_specifier(sv_t &fmt) -> bool {
     } while (true);
 };
 
-template <typename... Args>
 template <typename Parser>
 consteval void parse_one(sv_t &fmt, std::span<format_info> idx, std::size_t &n) {
     const auto last_pos = fmt.begin();
@@ -68,6 +67,7 @@ consteval void parse_one(sv_t &fmt, std::span<format_info> idx, std::size_t &n) 
     }
 }
 
+template <typename... Args>
 consteval auto compile_time_format_check(sv_t fmt, std::span<format_info> idx) -> void {
     std::size_t n = 0;
     (parse_one<formatter<Args>>(fmt, idx, n), ...);
